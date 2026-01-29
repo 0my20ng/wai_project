@@ -45,58 +45,91 @@ def load_csv_data(file_path):
 def fetch_api_data(api_key):
     print("🔄 [API] 실제 청년정책 데이터 요청 중...")
     
-    # 1. 실제 API URL (청년정책 조회)
+    print("🔄 [API] 실제 청년정책 데이터 요청 중...")
+    
     url = "https://www.youthcenter.go.kr/go/ythip/getPlcy"
     
-    # 2. 요청 파라미터 설정
+    # 기본 파라미터
     params = {
-        'openApiVlak': api_key,  # 발급받은 키 (Decoding Key 추천)
-        'display': 100,          # 가져올 개수 (최대 100개)
-        'pageIndex': 1,          # 페이지 번호
-        'srchPolyBizSecd': '003002001' # (선택) 주거 분야 코드 등 (필요 없으면 삭제 가능)
+        'apiKeyNm': api_key,
+        'pageSize': 100,         # 한 페이지당 100개
+        'rtnType': 'json'
     }
-
-    try:
-        # 3. 실제 요청 보내기
-        response = requests.get(url, params=params)
+    
+    all_policies = []
+    page = 1
+    total_count = 0
+    
+    while True:
+        params['pageNum'] = page
+        print(f"   PLEASE WAIT... 페이지 {page} 요청 중...")
         
-        if response.status_code == 200:
-            # 🚨 중요: 이 API는 기본적으로 XML을 반환합니다.
-            # JSON을 원하면 url 뒤에 '&type=json' 같은게 필요한데, 
-            # 보통 공공데이터는 XML이 기본이므로 XML 파싱으로 처리하는 게 안전합니다.
+        try:
+            # 3. 실제 요청 보내기
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+            }
             
-            try:
-                # (1) XML 파싱 시도
-                root = ET.fromstring(response.content)
-                policies = []
+            response = requests.get(url, params=params, headers=headers, verify=False)
+            
+            if response.status_code != 200:
+                print(f"❌ 페이지 {page} 요청 실패: {response.status_code}")
+                break
                 
-                # XML 구조: <youthPolicyList> -> <youthPolicy> -> 각 항목들
-                for item in root.findall('youthPolicy'):
-                    policy = {
-                        '사업명': item.find('polyBizSjnm').text,
-                        '지원대상': item.find('ageInfo').text, # 또는 sportScvl(지원규모) 등 확인 필요
-                        '지원내용': item.find('polyItcnCn').text,
-                        '신청방법': item.find('rqutProcCn').text,
-                        '상세링크': item.find('rqutUrla').text
-                    }
-                    policies.append(policy)
-                
-                df_api = pd.DataFrame(policies)
-                df_api['출처'] = '청년정책(API)'
-                print(f"✅ [API] 실제 데이터 수집 완료: {len(df_api)}건")
-                return df_api
-                
-            except Exception as e:
-                print(f"❌ 데이터 파싱 오류 (XML 구조 확인 필요): {e}")
-                print("응답 내용 앞부분:", response.text[:200]) # 디버깅용
-                return pd.DataFrame()
-        else:
-            print(f"❌ API 요청 실패: {response.status_code}")
-            return pd.DataFrame()
+            data = response.json()
+            
+            # 총 개수 확인 (첫 페이지에서만)
+            if page == 1:
+                # 구조: data['result']['pagging']['totCount']
+                try:
+                    total_count = data['result']['pagging']['totCount']
+                    print(f"📊 총 데이터 개수: {total_count}개 발견")
+                except:
+                    pass
 
-    except Exception as e:
-        print(f"❌ 연결 오류 발생: {e}")
-        return pd.DataFrame()
+            items = []
+            # 데이터 추출 로직
+            if 'youthPolicyList' in data:
+                items = data['youthPolicyList']
+            elif 'result' in data and isinstance(data['result'], dict):
+                if 'youthPolicyList' in data['result']:
+                    items = data['result']['youthPolicyList']
+            
+            if not items:
+                print("   � 더 이상 데이터가 없습니다.")
+                break
+                
+            for item in items:
+                if not isinstance(item, dict): continue
+
+                min_age = item.get('sprtTrgtMinAge', '')
+                max_age = item.get('sprtTrgtMaxAge', '')
+                age_info = f"만 {min_age}세 ~ {max_age}세" if min_age and max_age else item.get('ageInfo', '')
+
+                policy = {
+                    '사업명': item.get('plcyNm', item.get('polyBizSjnm', '')), 
+                    '지원대상': age_info, 
+                    '지원내용': item.get('plcySprtCn', item.get('polyItcnCn', '')),
+                    '신청방법': item.get('plcyAplyMthdCn', item.get('rqutProcCn', '')),
+                    '상세링크': item.get('aplyUrlAddr', item.get('rqutUrla', ''))
+                }
+                all_policies.append(policy)
+            
+            # 종료 조건 확인
+            if len(all_policies) >= total_count and total_count > 0:
+                print("✅ 모든 데이터 수집 완료")
+                break
+                
+            page += 1
+            
+        except Exception as e:
+            print(f"❌ 에러 발생: {e}")
+            break
+
+    df_api = pd.DataFrame(all_policies)
+    df_api['출처'] = '청년정책(API)'
+    print(f"✅ [API] 최종 수집 완료: {len(df_api)}건")
+    return df_api
 
     # ========================================================
     # 👇 Mock Data는 이제 주석 처리 (실제 키가 없을 때만 사용)
