@@ -6,15 +6,26 @@ import os
 import time
 
 class WelfareNavigator:
-    def __init__(self, csv_path='total_welfare_data.csv', model_name='snunlp/KR-SBERT-V40K-klueNLI-augSTS'):
+    def __init__(self, 
+                 csv_path=os.path.join('data', 'cleaned_welfare_data.csv'), 
+                 model_name='snunlp/KR-SBERT-V40K-klueNLI-augSTS',
+                 embedding_path=os.path.join('data', 'embeddings.npy')):
         """
         초기화 함수: 데이터 로드 및 모델 로드
         """
         print("⏳ [System] 데이터 및 모델 로딩 중... (시간이 조금 걸릴 수 있습니다)")
         self.df = self._load_data(csv_path)
         self.model = SentenceTransformer(model_name)
-        self.embeddings = self._create_embeddings()
-        print("✅ [System] 시스템 준비 완료!")
+        self.embedding_path = embedding_path
+        
+        # 임베딩 로드 또는 생성
+        if os.path.exists(self.embedding_path):
+            print(f"📦 [Embedding] 기존 '{self.embedding_path}' 파일을 불러옵니다.")
+            self.embeddings = np.load(self.embedding_path)
+        else:
+            self.embeddings = self._create_embeddings()
+            
+        print(f"✅ [System] 시스템 준비 완료! (데이터 {len(self.df)}건)")
 
     def _load_data(self, path):
         """
@@ -25,24 +36,31 @@ class WelfareNavigator:
             # 결측치 처리
             df.fillna('', inplace=True)
             
-            # 검색 및 임베딩을 위한 통합 텍스트 컬럼 생성
-            # 사업명 + 지원대상 + 지원내용을 합쳐서 문맥을 풍부하게 함
-            df['combined_text'] = (
-                "사업명: " + df['사업명'] + " | " + 
-                "지원대상: " + df['지원대상'] + " | " + 
-                "지원내용: " + df['지원내용']
-            )
+            # 전처리된 파일(AI_학습용_데이터)이 있으면 우선 사용, 없으면 새로 조합
+            if 'AI_학습용_데이터' in df.columns:
+                df['combined_text'] = df['AI_학습용_데이터']
+            else:
+                df['combined_text'] = (
+                    "사업명: " + df['사업명'].astype(str) + " | " + 
+                    "지원대상: " + df['지원대상'].astype(str) + " | " + 
+                    "지원내용: " + df['지원내용'].astype(str)
+                )
             return df
         except FileNotFoundError:
-            raise Exception(f"❌ '{path}' 파일을 찾을 수 없습니다. STEP 1을 먼저 실행해주세요.")
+            raise Exception(f"❌ '{path}' 파일을 찾을 수 없습니다. STEP 1 & 2를 먼저 실행해주세요.")
 
     def _create_embeddings(self):
         """
-        텍스트 데이터를 벡터화(Embedding)합니다.
+        텍스트 데이터를 벡터화(Embedding)하고 파일로 저장합니다.
         """
-        print("🔄 [Embedding] 정책 데이터 벡터화 진행 중...")
+        print("🔄 [Embedding] 정책 데이터 벡터화 진행 중... (약 30초 소요)")
         # encode 함수는 텍스트 리스트를 입력받아 벡터 행렬을 반환
-        return self.model.encode(self.df['combined_text'].tolist(), show_progress_bar=True)
+        embeddings = self.model.encode(self.df['combined_text'].tolist(), show_progress_bar=True)
+        
+        # 파일로 저장 (캐싱)
+        np.save(self.embedding_path, embeddings)
+        print(f"💾 [Embedding] 벡터화 완료 및 '{self.embedding_path}' 저장 성공!")
+        return embeddings
 
     def search(self, user_query, top_k=3):
         """

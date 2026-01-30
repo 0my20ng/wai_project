@@ -6,3 +6,5 @@ openai
 requests
 beautifulsoup4
 lxml
+matplotlib
+wordcloud

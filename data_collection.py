@@ -3,12 +3,13 @@ import requests
 from bs4 import BeautifulSoup
 import datetime
 import xml.etree.ElementTree as ET
+import os
 
 # ==========================================
 # 1. 환경 설정 (Configuration)
 # ==========================================
 # 다운로드 받은 CSV 파일명
-CSV_FILE_PATH = r'C:\Users\11\Desktop\wai_project\한국사회보장정보원_민간복지서비스정보_20251105.csv'
+CSV_FILE_PATH = os.path.join('data', '한국사회보장정보원_민간복지서비스정보_20251105.csv')
 
 # 공공데이터포털에서 발급받은 청년정책 API 키 (여기에 입력하세요)
 API_KEY = "30665de9-6085-43b3-980a-f9e94d4fe2f0" 
@@ -190,5 +191,7 @@ if __name__ == "__main__":
     print(final_df.head())
     
     # 6. 파일로 저장 (다음 단계를 위해)
-    final_df.to_csv("total_welfare_data.csv", index=False, encoding='utf-8-sig')
-    print("\n💾 'total_welfare_data.csv' 파일로 저장되었습니다.")
+    os.makedirs('data', exist_ok=True)
+    save_path = os.path.join('data', "total_welfare_data.csv")
+    final_df.to_csv(save_path, index=False, encoding='utf-8-sig')
+    print(f"\n💾 '{save_path}' 파일로 저장되었습니다.")

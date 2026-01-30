@@ -14,9 +14,34 @@
 
 ---
 
+## 🚀 시작하기 전에 (Prerequisites)
+
+이 프로젝트를 실행하기 위해 필요한 라이브러리를 설치해야 합니다.
+
+```bash
+# 가상환경 생성 및 활성화 (선택 사항)
+python -m venv .venv
+source .venv/Scripts/activate  # Windows
+# source .venv/bin/activate    # Mac/Linux
+
+# 필수 라이브러리 설치
+pip install -r requirements.txt
+```
+
+---
+
 ## 2. 단계별 상세 추진 계획 (Execution Roadmap)
+| 단계 | 작업 내용 | 실행 파일 |
+| :--- | :--- | :--- |
+| **STEP 1** | 데이터 수집 (CSV + API) | `python data_collection.py` |
+| **STEP 2** | 데이터 전처리 및 시각화 | `python cleaned_data.py` |
+| **STEP 3** | AI 검색 시스템 (RAG) | `python wai_rag_system.py` |
+| **STEP 4** | 성능 평가 및 결과 분석 | `python wai_evaluation.py` |
+
+---
 
 ### **STEP 1. 데이터 수집 (Data Collection Strategy)**
+> **실행 명령어:** `python data_collection.py`
 
 > **목표:** 정형 데이터(CSV/API)와 비정형 데이터(Web)를 결합한 '하이브리드 DB' 구축
 
@@ -53,6 +78,8 @@
 
 ### **STEP 2. 데이터 전처리 및 시각화 (Preprocessing - Orange 3 Focus)**
 
+> **실행 명령어:** `python cleaned_data.py`
+
 > **목표:** PPT 2번 항목(데이터 소개)에 들어갈 **'시각적 근거'** 확보
 
 **2-1. 데이터 정제 (Data Cleaning)**
@@ -79,6 +106,8 @@
 ---
 
 ### **STEP 3. AI 모델링 및 개발 (AI Development - Python Focus)**
+
+> **실행 명령어:** `python wai_rag_system.py`
 
 > **목표:** PPT 3번 항목(분석 과정)에 들어갈 **'핵심 기술'** 구현
 
@@ -113,6 +142,8 @@
 ---
 
 ### **STEP 4. 성능 평가 및 검증 (Evaluation)**
+
+> **실행 명령어:** `python wai_evaluation.py`
 
 > **목표:** PPT 4번 항목(분석 결과)에 들어갈 **'객관적 수치'** 확보
 
