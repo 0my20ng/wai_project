@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "C:\Users\11\Desktop\wai_project\data_collection.py", line 146, in <module>
-    df_csv = load_csv_data(CSV_FILE_PATH)
-  File "C:\Users\11\Desktop\wai_project\data_collection.py", line 20, in load_csv_data
-    print(f"\U0001f504 [CSV] '{file_path}' 로딩 중...")
-    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-UnicodeEncodeError: 'cp949' codec can't encode character '\U0001f504' in position 0: illegal multibyte sequence
